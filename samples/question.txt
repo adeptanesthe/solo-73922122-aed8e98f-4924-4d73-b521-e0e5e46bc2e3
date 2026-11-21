@@ -1,0 +1,1 @@
+Checkout page shows 502 and payments time out. What is the likely cause?

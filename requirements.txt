@@ -1,0 +1,17 @@
+# Core API
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.3
+python-multipart==0.0.34
+
+# Image / numeric
+pillow==13.0.0
+numpy==2.4.6
+
+# Local vision-language model (CPU wheels)
+# torch must be installed from the CPU index, see Dockerfile / README:
+#   pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+transformers==5.23.0
+accelerate==1.16.0
+sentencepiece==0.2.3

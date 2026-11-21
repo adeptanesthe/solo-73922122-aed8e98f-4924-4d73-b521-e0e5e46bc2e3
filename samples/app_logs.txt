@@ -1,0 +1,7 @@
+2026-11-18T10:15:01Z INFO  checkout-api request received user=u-4821 cart=c-991
+2026-11-18T10:15:02Z INFO  checkout-api calling payment-gateway /v1/charge
+2026-11-18T10:15:07Z ERROR payment-gateway client timeout after 5000ms req=req-7f3a2c
+2026-11-18T10:15:07Z WARN  checkout-api upstream payment-gateway unhealthy, circuit=open
+2026-11-18T10:15:07Z ERROR checkout-api charge failed: upstream connect timeout req=req-7f3a2c
+2026-11-18T10:15:07Z INFO  checkout-api responded 502 to client req=req-7f3a2c
+2026-11-18T10:15:09Z INFO  healthz ok db=up cache=up

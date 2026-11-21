@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        # Bake SmolVLM weights into the image (fully offline at runtime).
+        # Set to "false" to download at first startup into the models volume instead.
+        PRELOAD_MODEL: "true"
+        # Uncomment if huggingface.co is unreachable and a mirror is needed:
+        # HF_ENDPOINT: "https://hf-mirror.com"
+    image: troubleshoot-evidence-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      VLM_BACKEND: auto            # auto | smolvlm | heuristic
+      VLM_MODEL_ID: HuggingFaceTB/SmolVLM-256M-Instruct
+      MODEL_CACHE_DIR: /models
+      VLM_LOCAL_FILES_ONLY: "true" # never hit the network at runtime
+      VLM_REGION_CAPTION_LIMIT: "2"
+      CONFIDENCE_THRESHOLD: "0.45"
+    volumes:
+      - models:/models
+    restart: unless-stopped
+
+volumes:
+  models:
