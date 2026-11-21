@@ -26,7 +26,10 @@ logs ────────┴─ rule-based anomaly extraction (severity + ca
   heuristic backend and **says so in every response** (`backend` field).
 * **Region localization** — classical CV (numpy) finds error-colored and
   high-contrast regions; the VLM describes the full screenshot and the top
-  regions. Bounding boxes are returned in pixel coordinates.
+  regions. Bounding boxes are returned in pixel coordinates. Masks are
+  reduced tile by tile (fixed 768×768 px tiles) and connected components are
+  merged across tile borders, so peak memory stays flat for large screenshots
+  instead of scaling with image area — see [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md).
 * **Log analysis** — regex rules map lines to severity + fault category
   (network / database / auth / resource / dependency / application / config)
   and detect recovery signals used for contradiction checks.
@@ -47,6 +50,26 @@ huggingface.co is unreachable, set the `HF_ENDPOINT` build arg in
 `docker-compose.yml` to a mirror. To skip the baked-in model, set
 `PRELOAD_MODEL=false` — weights are then downloaded on first start into the
 `models` volume.
+
+### Offline demo in seconds (no model download)
+
+The demo override uses the deterministic heuristic backend, so the image builds
+and starts without fetching ~500 MB of weights:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+# open http://localhost:8000/docs and try POST /v1/diagnose
+```
+
+With the service running, exercise both diagnosis endpoints with the bundled
+sample (they must return identical evidence):
+
+```bash
+python scripts/demo_request.py --base-url http://localhost:8000
+```
+
+For the Swagger UI, upload `samples/fault_screenshot.png` in the file field and
+paste `samples/question.txt` / `samples/app_logs.txt` into the form fields.
 
 ## Quick start (local, no Docker)
 
@@ -137,12 +160,14 @@ When the evidence is insufficient, the response becomes:
 | `CONFIDENCE_THRESHOLD`     | `0.45`                                   | min confidence for `status=ok`            |
 | `MAX_IMAGE_BYTES`          | `15728640`                               | upload size limit                         |
 | `MAX_LOG_CHARS`            | `200000`                                 | log snippet size limit                    |
+| `MAX_REGIONS`              | `8`                                      | max screenshot regions kept/returned      |
 
 ## Tests
 
 ```bash
 source .venv/bin/activate
 python -m pytest tests/ -v        # uses the deterministic heuristic backend
+python -m benchmarks.bench_regions  # region detection: legacy-vs-tiled equivalence, time, memory
 ```
 
 ## Known limitations

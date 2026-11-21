@@ -134,3 +134,42 @@ def test_diagnose_json_rejects_bad_base64(client):
         json={"question": "q", "logs": "", "screenshot_base64": "!!!not-base64!!!"},
     )
     assert r.status_code == 422
+
+
+def test_docs_and_both_diagnose_endpoints_agree(client):
+    """/docs serves Swagger; multipart and JSON endpoints return the same evidence."""
+    import base64
+
+    docs = client.get("/docs")
+    assert docs.status_code == 200
+    openapi = client.get("/openapi.json").json()
+    assert "/v1/diagnose" in openapi["paths"]
+    assert "/v1/diagnose/json" in openapi["paths"]
+    assert "multipart/form-data" in str(openapi["paths"]["/v1/diagnose"])
+
+    image = make_error_screenshot()
+    question = "Checkout shows 502 and payments time out. Likely cause?"
+    multipart = client.post(
+        "/v1/diagnose",
+        files={"screenshot": ("fault.png", image, "image/png")},
+        data={"question": question, "logs": ERROR_LOGS},
+    )
+    json_resp = client.post(
+        "/v1/diagnose/json",
+        json={
+            "question": question,
+            "logs": ERROR_LOGS,
+            "screenshot_base64": base64.b64encode(image).decode(),
+        },
+    )
+    assert multipart.status_code == json_resp.status_code == 200
+
+    def evidence_shape(body):
+        return [
+            (e["id"], e["kind"], e["region"], e["log_lines"], e["confidence"])
+            for e in body["evidence"]
+        ]
+
+    assert evidence_shape(multipart.json()) == evidence_shape(json_resp.json())
+    assert multipart.json()["hypotheses"] == json_resp.json()["hypotheses"]
+    assert multipart.json()["relations"] == json_resp.json()["relations"]
